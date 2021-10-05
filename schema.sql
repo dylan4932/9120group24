@@ -1,3 +1,5 @@
+--INSERT INTO Person VALUES (20240009, 'XIMENES BELO Imelda', '1998-10-24', 'W', 'Democratic Republic of Timor-Leste', '456@qq.com');
+
 DROP TABLE IF EXISTS Athlete;
 DROP TABLE IF EXISTS Person;
 DROP TABLE IF EXISTS National_team;
@@ -18,46 +20,46 @@ DROP TABLE IF EXISTS Scheduled;
 
 
 CREATE TABLE Person (
-	pid INTEGER,
-	name varchar(30) NOT NULL，
+	pid INTEGER PRIMARY KEY,
+	name varchar(30) NOT NULL,
 	date_birth DATE NOT NULL,
 	gender varchar(1) NOT NULL,
 	home_country varchar(35) NOT NULL,
-	email varchar(20),
+	email varchar(20) NOT NULL,
 	
-	PRIMARY KEY (pid)
+	check (gender IN ('F', 'M'))
 );
 
 CREATE TABLE Athlete (
-	player_id INTEGER,
+	player_id INTEGER PRIMARY KEY,
 	weight DECIMAL(5,2),
 	birth_country varchar(35) NOT NULL,
 	
-	PRIMARY KEY (player_id),
 	FOREIGN KEY (player_id) REFERENCES Person(pid)
 );
 
-INSERT INTO Person VALUES (20240001, 'John', '', 'Smith', '2000-01-01', 'M', 'Australia');
-INSERT INTO Person VALUES (20240002, 'Sally', 'Junior', 'Waters', '1997-02-01', 'M', 'Australia');
-INSERT INTO Person VALUES (20240003, 'Sally', 'Senior', 'Waters', '1977-05-01', 'M', 'Australia');
-INSERT INTO Person VALUES (20240004, 'Pauline', '', 'Winters', '1995-06-01', 'M', 'Australia');
-INSERT INTO Person VALUES (20240005, 'Matthew', '', 'Long', '1990-03-01', 'M', 'United States of America');
-INSERT INTO Person VALUES (20240006, 'Ming', '', 'Yao', '1980-09-02', 'M', 'People s Republic of China');
-INSERT INTO Person VALUES (20240008, 'XIMENES', 'BELO', 'Imelda', '1998-10-24', 'F', 'Democratic Republic of Timor-Leste');
+INSERT INTO Person VALUES (20240001, 'John Smith', '2000-01-01', 'M', 'Australia', '123@gmail.com');
+INSERT INTO Person VALUES (20240002, 'Sally Junior Waters', '1997-02-01', 'M', 'Australia', '456@gmail.com');
+INSERT INTO Person VALUES (20240003, 'Sally Senior Waters', '1977-05-01', 'M', 'Australia', '789@gmail.com');
+INSERT INTO Person VALUES (20240004, 'Pauline Winters', '1995-06-01', 'M', 'Australia', '101@gmail.com');
+INSERT INTO Person VALUES (20240005, 'Matthew Long', '1990-03-01', 'M', 'United States of America', '123@outlook.com');
+INSERT INTO Person VALUES (20240006, 'Ming Yao', '1980-09-02', 'M', 'People s Republic of China', '123@qq.com');
+INSERT INTO Person VALUES (20240008, 'XIMENES BELO Imelda', '1998-10-24', 'F', 'Democratic Republic of Timor-Leste', '456@qq.com');
+
 
 INSERT INTO Athlete VALUES (20240001, 80.00, 'People s Republic of China');
 INSERT INTO Athlete VALUES (20240002, 80.00, 'Australia');
 INSERT INTO Athlete VALUES (20240003, 75.00, 'Australia');
 INSERT INTO Athlete VALUES (20240004, 80.00, 'United States of America');
 INSERT INTO Athlete VALUES (20240005, 100.00, 'People s Republic of China');
-INSERT INTO Athlete VALUES (20240008, 45, 'Democratic Republic of Timor-Leste')
+INSERT INTO Athlete VALUES (20240008, 45, 'Democratic Republic of Timor-Leste');
 
-CREATE TABLE National_team (
-	team_id	INTEGER,
+CREATE TABLE National_team (		--
+	team_id	INTEGER PRIMARY KEY,
 	country	varchar(35)	NOT NULL,
-	number_of_players INTEGER,
+	number_of_players INTEGER NOT NULL,
 	
-	PRIMARY KEY (team_id)
+	check (number_of_players > 0)
 );
 
 CREATE TABLE Team_contains (
@@ -66,7 +68,7 @@ CREATE TABLE Team_contains (
 	
 	PRIMARY KEY (player_id, team_id),
 	FOREIGN KEY (player_id) REFERENCES Athlete,
-	FOREIGN KEY (team_id) REFERENCES National_team
+	FOREIGN KEY (team_id) REFERENCES National_team ON DELETE CASCADE
 );
 
 CREATE TABLE Sport_event (
@@ -82,8 +84,8 @@ CREATE TABLE Location(
 	location_name varchar(10) NOT NULL,
 	specific_address varchar(30) NOT NULL,
 	suburb varchar(10) NOT NULL,
-	latitude float(10,6) NOT NULL,		--如何记录经纬度
-	longtitude float(10,6) NOT NULL,
+	latitude decimal(10, 6) NOT NULL, 	--如何记录经纬度
+	longtitude decimal(10,6) NOT NULL,
 	
 	PRIMARY KEY (location_id)
 );
@@ -93,7 +95,7 @@ CREATE TABLE Venue (
 	--event_time TIME(0),	我不是很理解这个event——time记录的是什么
 	build_cost decimal(10,2) NOT NULL,
 	build_date DATE NOT NULL,
-	location_id NOT NULL,
+	location_id INTEGER NOT NULL,
 	
 	PRIMARY KEY (venue_id),
 	FOREIGN KEY (location_id) REFERENCES Location
@@ -120,7 +122,7 @@ CREATE TABLE LivesIn (
 	FOREIGN KEY (acc_id) REFERENCES Accommodation
 );
 
-CREATE TABLE Officials (
+CREATE TABLE Officials (		-- 还未完成
 	official_id INTEGER,
 	
 	PRIMARY KEY (official_id)
@@ -130,7 +132,7 @@ CREATE TABLE Information (
 	info_id INTEGER,
 	event_name varchar(10) NOT NULL,
 	
-	PRIMARY KEY (information_id)
+	PRIMARY KEY (info_id)
 );
 
 CREATE TABLE Result (					--- IS-A relation 未完成，会不会有更好的表达形式来描述时间或者分数
@@ -142,7 +144,7 @@ CREATE TABLE Result (					--- IS-A relation 未完成，会不会有更好的表
 
 CREATE TABLE Records (
 	event_id INTEGER,
-	information_id INTEGER,
+	info_id INTEGER,
 	
 	PRIMARY KEY (event_id, info_id),
 	FOREIGN KEY (event_id) REFERENCES Sport_event,
@@ -164,9 +166,9 @@ CREATE TABLE Journeys (
 	location_id INTEGER NOT NULL,	
 	booking_date DATE NOT NULL,	--这里需要加上date吗 还是需要放在start 和 arrival 里
 	start_time TIME(0) NOT NULL,
-	arrival_time TIME (0) NOT NULL
-	start_location varchar(10) NOT NULL,
-	destination varchar(10) NOT NULL,
+	arrival_time TIME (0) NOT NULL,
+	start_location INTEGER NOT NULL,
+	destination INTEGER NOT NULL,
 	
 	PRIMARY KEY (booking_id),
 	FOREIGN KEY (location_id) REFERENCES Location
