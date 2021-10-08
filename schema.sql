@@ -221,7 +221,7 @@ CREATE TABLE Result (					--- IS-A relation 未完成，会不会有更好的表
 	PRIMARY KEY (result_id)
 );
 
-CREATE TABLE Score (
+CREATE TABLE Scorebased_result (
 	result_id INTEGER PRIMARY KEY,
 	total_score decimal(10,2),
 	score_record decimal(5,2),
@@ -229,7 +229,7 @@ CREATE TABLE Score (
 	FOREIGN KEY (result_id) REFERENCES Result
 );
 
-CREATE TABLE Time (
+CREATE TABLE Timebased_resulte (
 	result_id INTEGER PRIMARY KEY,
 	total_score decimal(10,2),
 	score_record decimal(5,2),
