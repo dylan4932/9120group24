@@ -1,0 +1,37 @@
+{% include 'top.html' %}
+
+<div class="content">
+    <div class="container">
+        <h1 class="title" align="center">Update Event</h1>
+
+        <form class="newbooking pure-form pure-form-aligned" method="POST" action="{{url_for('update_event')}}">
+			<div class="pure-control-group">
+                <label for="event_id">Event ID:</label>
+                <input type="text" name="event_id" value="{{ eventInfo.event_id }}" size="25" readonly required>
+            </div>
+            <div class="pure-control-group">
+                <label for="event_name">Event Name:</label>
+                <input type="text" name="event_name" value= "{{ eventInfo.event_name }}" size="25" autofocus required>
+            </div>
+			<div class="pure-control-group">
+                <label for="sport">Sport:</label>
+                <input type="text" name="sport" value="{{ eventInfo.sport }}" size="25" required>
+			</div>
+            <div class="pure-control-group">
+                <label for="referee">Referee:</label>
+				<input type="text" name="referee" value="{{ eventInfo.referee }}" size="25" required>
+            </div>
+            <div class="pure-control-group">
+                <label for="judge">Judge:</label>
+                <input type="text" name="judge" value="{{ eventInfo.judge }}" size="25" required>			
+			</div>
+			<div class="pure-control-group">
+                <label for="medal_giver">Medal Giver:</label>
+				<input type="text" name="medal_giver" value="{{ eventInfo.medal_giver }}" size="25" required>
+            </div>
+            <button type="submit" class="flat">Update Event</button>
+        </form>
+    </div>
+</div>
+
+{% include 'bottom.html' %}

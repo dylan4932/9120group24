@@ -1,0 +1,33 @@
+{% include 'top.html' %}
+
+<div class="content">
+    <div class="container">
+        <h1 class="title" align="center">New Event</h1>
+
+        <form class="newbooking pure-form pure-form-aligned" method="POST" action="{{url_for('new_event')}}">
+            <div class="pure-control-group">
+                <label for="event_name">Event Name:</label>
+                <input type="text" name="event_name" size="25" autofocus required>
+            </div>
+			<div class="pure-control-group">
+                <label for="sport">Sport:</label>
+                <input type="text" name="sport" size="25" required>
+            </div>
+            <div class="pure-control-group">
+                <label for="referee">Referee:</label>
+                <input type="text" name="referee" size="25" required>
+            </div>
+            <div class="pure-control-group">
+                <label for="judge">Judge:</label>
+                <input type="text" name="judge" size="25" required>
+            </div>
+            <div class="pure-control-group">
+                <label for="medal_giver">Medal Giver:</label>
+                <input type="text" name="medal_giver" size="25" required>
+            </div>
+            <button type="submit" class="flat">Add Event</button>
+        </form>
+    </div>
+</div>
+
+{% include 'bottom.html' %}
