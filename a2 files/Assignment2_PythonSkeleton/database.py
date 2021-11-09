@@ -10,7 +10,7 @@ Connect to the database using the connection string
 '''
 def openConnection():
     # connection parameters - ENTER YOUR LOGIN AND PASSWORD HERE
-    userid = "y21s1c9120_yuji0713"
+    userid = "y21s2c9120_yuji0713"
     passwd = "1997"
     myHost = "soit-db-pro-2.ucc.usyd.edu.au"
 
@@ -22,6 +22,7 @@ def openConnection():
                                     user=userid,
                                     password=passwd,
                                     host=myHost)
+        print('connected successfully!')
     except psycopg2.Error as sqle:
         print("psycopg2.Error : " + sqle.pgerror)
     
@@ -32,27 +33,38 @@ def openConnection():
 Validate user login request based on username and password
 '''
 def checkUserCredentials(username, password):
-    userInfo = []
+
+    #User '-' should not be allowed to login.
     conn = None 
     try:
         conn = openConnection()
-    except (Exception, psycopg2.DatabaseError) as error:
-        print('connection error: ', error)
-    if conn:
-        try:
-            cursor = conn.cursor()
-            print('SQL server information')
-            print(conn.get_dsn_parameters())
-            cursor.excute("select officialid from official where username=? and password=?".format(username, password))
-            userInfo = cursor.fetchall()
-        except (Exception, psycopg2.DatabaseError) as error:
-            print('Error in excute the SQL query:', error)
-        finally:
-                try:
-                    cursor.close()
-                    conn.close()
-                except (Exception, Error):
-                    print('Error in close')
+
+        cursor = conn.cursor()
+        cursor.execute("SELECT * from official where username=%(user)s and password=%(passwd)s", 
+                    {'user': username, 'passwd': password})
+        userInfo = cursor.fetchone()
+        
+    except Exception as e:
+        print('Execution Error')
+    finally:
+        if conn != None:
+            cursor.close()
+            conn.close()
+    # if conn:
+    #     try:
+    #         cursor = conn.cursor()
+    #         print('SQL server information')
+    #         print(conn.get_dsn_parameters())
+            
+    #         userInfo = cursor.fetchall()
+    #     except (Exception, psycopg2.DatabaseError) as error:
+    #         print('Error in excute the SQL query:', error)
+    #     finally:
+    #             try:
+    #                 cursor.close()
+    #                 conn.close()
+    #             except (Exception, Error):
+    #                 print('Error in close')
 
 
     # userInfo = ['3', 'ChrisP', 'Christopher', 'Putin', '888']
@@ -68,33 +80,39 @@ def findEventsByOfficial(official_id):
     conn = None
     try:
         conn = openConnection()
-    except (Exception, psycopg2.DatabaseError) as error:
-        print('Error in connection')
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT eventid, eventname as Name, sportname as Sport, referee, judge, medalgiver\r\n" +
+                        "FROM event e NATURAL JOIN sport NATURAL JOIN official\r\n" +
+                        "WHERE e.referee=%(r_id)s or e.judge=%(j_id)s or e.medalgiver=%(m_id)s\r\n"+
+                        "ORDER BY sportname;",	
+                        {'r_id': official_id, 'j_id': official_id, 'm_id': official_id})
+        event_db = cursor.fetchall()
+        cursor.execute("SELECT officialid, username FROM official")
+        official_list = cursor.fetchall()
+        print(event_db)
+        print(official_list)
+    except psycopg2.Error as sqle:
+        print("psycopg2.Error : " + sqle.pgerror)
     finally:
-        if conn:
-            try:
-                cursor = conn.cursor()
-                print('SQL server information')
-                print(conn.get_dsn_parameters())
-                cursor.excute("select new_table.eventname, new_table.eventid, sportname, new_table. referee, new_table. judge, new_table.award from \r\n" +
-                            "(select e.eventname, e.eventid, s.sportname, referee.officialid as r_id, referee.username as referee, \r\n" +
-                            "judge.officialid as j_id, judge.username as judge, award.officialid as a_id, award.username as award \r\n"	+	
-                            "from event e join (select officialid, username from official)referee on e.referee = referee.officialid \r\n" +
-                            "join(select officialid, username from official)judge on e.judge = judge.officialid \r\n" +
-                            "join sport s on s.sportid = e.sportid \r\n" +
-                            "order by e.eventname) as new_table \r\n" +
-                            "where r_id = {} or j_id = {} or a_id = {}".format(official_id, official_id, official_id)
-                            )
-
-                event_list = cursor.fetchall()
-            except (Exception, psycopg2.DatabaseError) as error:
-                print('Error in excute the SQL query')
-            finally:
-                try:
-                    cursor.close()
-                    conn.close()
-                except (Exception, psycopg2.DatabaseError) as error:
-                    print('Error in close')
+        for i in range(len(event_db)):
+            for j in [3, 4, 5]:
+                for official in official_list:
+                    if official[0] == event_db[i][j]:
+                        print('found!')
+                        event_db[i][j] == official[1]
+        print(event_db)
+        event_list = [{
+            'event_id': row[0],
+            'event_name': row[1],
+            'sport': row[2],
+            'referee': row[3],
+            'judge': row[4],
+            'medal_giver': row[5]
+        } for row in event_db]
+        if conn != None:
+            cursor.close()
+            conn.close()
+            
             
 
     # event_db = [
