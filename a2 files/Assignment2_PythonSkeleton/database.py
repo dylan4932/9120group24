@@ -34,9 +34,13 @@ Validate user login request based on username and password
 '''
 def checkUserCredentials(username, password):
 
-
+    conn = None
+    userInfo = []
     # User '-' should not be allowed to login.
     # Check user input validation process
+    # still need to validate the login process (check)
+    # if not username.isalnum():
+    #     return
     try:
         conn = openConnection()
 
@@ -44,17 +48,20 @@ def checkUserCredentials(username, password):
         cursor.execute("SELECT * from official where username=%(user)s and password=%(passwd)s", 
                     {'user': username, 'passwd': password})
         userInfo = cursor.fetchone()
-        
-    except Exception as e:
+    except Exception as e:      # need to check the connection while excute
         print('Execution Error')
     finally:
         if conn != None:
             cursor.close()
             conn.close()
-    # still need to validate the login process
-
+            print('SQL connection closed.')
+        # did not match
+        if len(userInfo) == 0:
+            print('Invalidate user and password')
+            return
+    
     # userInfo = ['3', 'ChrisP', 'Christopher', 'Putin', '888']
-
+    
     return userInfo
 
 
@@ -64,19 +71,17 @@ List all the associated events in the database for a given official
 def findEventsByOfficial(official_id):
     event_db = []
     event_list = []
-    # the check user input validation process
-
-
     try:
         conn = openConnection()
         cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT eventid, eventname as Name, sportname as Sport, referee, judge, medalgiver\r\n" +
-                        "FROM event NATURAL JOIN sport\r\n" +
-                        "WHERE referee=%(official)s or judge=%(official)s or medalgiver=%(official)s\r\n"+
-                        "ORDER BY sportname;", {'official': official_id})
+        cursor.execute("SELECT e.eventid, e.eventname, s.sportname, r.username, j.username, m.username\r\n" +
+                        "FROM event e NATURAL JOIN sport s\r\n" +
+                        "JOIN official r ON (e.referee = r.officialid)\r\n" +
+                        "JOIN official j ON (e.judge = j.officialid)\r\n" +
+                        "JOIN official m ON (e.medalgiver = m.officialid)\r\n" +
+                        "WHERE e.referee=%(official)s or e.judge=%(official)s or e.medalgiver=%(official)s\r\n"+
+                        "ORDER BY s.sportname;", {'official': official_id})
         event_db = cursor.fetchall()
-        cursor.execute("SELECT officialid, username FROM official")
-        official_list = cursor.fetchall()
         
     except psycopg2.Error as sqle:
         print("psycopg2.Error : " + sqle.pgerror)       # sqle.pgerror should be deleted
@@ -85,13 +90,14 @@ def findEventsByOfficial(official_id):
             'event_id': row[0],
             'event_name': row[1],
             'sport': row[2],
-            'referee': official_list[row[3]-1][1] if isinstance(row[3], int) else '-',
-            'judge': official_list[row[4]-1][1] if isinstance(row[4], int) else '-',
-            'medal_giver': official_list[row[5]-1][1] if isinstance(row[5], int) else '-'
+            'referee': row[3],
+            'judge': row[4],
+            'medal_giver': row[5]
         } for row in event_db]
         if conn != None:
             cursor.close()
             conn.close()
+            print('SQL connection closed.')
     return event_list       
             
 '''
@@ -106,31 +112,33 @@ def findEventsByCriteria(searchString):
     try:
         conn = openConnection()
         cursor = conn.cursor()
-        # problem with check official name
-        cursor.execute("SELECT DISTINCT eventid, eventname as Name, sportname as Sport, referee, judge, medalgiver\r\n" +
-                        "FROM event NATURAL JOIN sport NATURAL JOIN official\r\n" +
-                        "WHERE LOWER(eventname) LIKE LOWER('%%"+searchString+"%%')\r\n"+
-                        "OR LOWER(sportname) LIKE LOWER('%%"+searchString+"%%')\r\n"+
-                        "OR LOWER(username) LIKE LOWER('%%"+searchString+"%%')\r\n"+
-                        "ORDER BY sportname;")
+        cursor.execute("SELECT e.eventid, e.eventname, s.sportname, r.username, j.username, m.username\r\n" +
+                        "FROM event e NATURAL JOIN sport s\r\n" +
+                        "JOIN official r ON (e.referee = r.officialid)\r\n" +
+                        "JOIN official j ON (e.judge = j.officialid)\r\n" +
+                        "JOIN official m ON (e.medalgiver = m.officialid)\r\n" +
+                        "WHERE LOWER(e.eventname) LIKE LOWER('%%"+searchString+"%%')\r\n"+
+                        "OR LOWER(s.sportname) LIKE LOWER('%%"+searchString+"%%')\r\n"+
+                        "OR LOWER(r.username) LIKE LOWER('%%"+searchString+"%%')\r\n"+
+                        "OR LOWER(j.username) LIKE LOWER('%%"+searchString+"%%')\r\n"+
+                        "OR LOWER(m.username) LIKE LOWER('%%"+searchString+"%%')\r\n"+
+                        "ORDER BY s.sportname;")
         events = cursor.fetchall()
-        cursor.execute("SELECT officialid, username FROM official")
-        official_list = cursor.fetchall()
         event_list = [{
             'event_id': row[0],
             'event_name': row[1],
             'sport': row[2],
-            'referee': official_list[row[3]-1][1] if isinstance(row[3], int) else '-',
-            'judge': official_list[row[4]-1][1] if isinstance(row[4], int) else '-',
-            'medal_giver': official_list[row[5]-1][1] if isinstance(row[5], int) else '-'
+            'referee': row[3],
+            'judge': row[4],
+            'medal_giver': row[5]
         } for row in events]   
     except psycopg2.Error as sqle:
         print("psycopg2.Error : " + sqle.pgerror)       # sqle.pgerror should be deleted
     finally:
-        
         if conn != None:
             cursor.close()
             conn.close()
+            print('SQL connection closed.')
     return event_list
 
 
@@ -140,25 +148,75 @@ Add a new event
 def addEvent(event_name, sport, referee, judge, medal_giver):
     
     # It needs to support updating event associated with the user as the minimum.
+    conn = None
     try:
         conn = openConnection()
         cursor = conn.cursor()
-        get_stmt = ("SELECT count(*) from event")
-        cursor.execute(get_stmt)
-        res = cursor.fetchone()
-        print(int(count[0]) for count in res)
-        # cursor.execute("SELECT DISTINCT eventid, eventname as Name, sportname as Sport, referee, judge, medalgiver\r\n" +
-        #                 "FROM event NATURAL JOIN sport NATURAL JOIN official\r\n" +
-        #                 "WHERE LOWER(eventname) LIKE LOWER('%%"+searchString+"%%')\r\n"+
-        #                 "OR LOWER(sportname) LIKE LOWER('%%"+searchString+"%%')\r\n"+
-        #                 "OR LOWER(username) LIKE LOWER('%%"+searchString+"%%')\r\n"+
-        #                 "ORDER BY sportname;")
+        # # get event_id
+        # event_stmt = ("SELECT count(*) from event;")
+        # cursor.execute(event_stmt)
+        # event_id = cursor.fetchone()[0]+1
+
+        # get sport_id
+        sname_list = []
+        sport_stmt = ("SELECT * from sport;")
+        cursor.execute(sport_stmt)
+        sport_list = cursor.fetchall()
+        for row in sport_list:
+            sname_list.append(row[1])
+        
+        # check whether the input sport are in the list
+        if sport not in sname_list:
+            cursor.close()
+            conn.close()
+            print('SQL connection closed.')
+            print('Sport name not in the database')
+            return False
+        
+        for row in sport_list:
+            if row[1] == sport:
+                sport_id = row[0]
+
+        # get official_id for referee/ judge/ medal giver
+        username_list = []                             
+        official_stmt = ("SELECT officialid, username from official;")
+        cursor.execute(official_stmt)
+        official_list = cursor.fetchall()
+        for row in official_list:
+            username_list.append(row[1])
+        
+        # check whether the referee/ judge/ medal_giver in the official list
+        if referee not in username_list and judge not in username_list and medal_giver not in username_list:
+            cursor.close()
+            conn.close()
+            print('Username not in the database')
+            return False
+
+        for official in official_list:
+            if official[1] == referee:
+                referee_id = official[0]
+
+        for official in official_list:
+            if official[1] == judge:
+                judge_id = official[0]
+
+        for official in official_list:
+            if official[1] == medal_giver:
+                medalGiver_id = official[0]
+
+        cursor.execute("INSERT INTO event(eventname, sportid, referee, judge, medalgiver)\r\n"+
+                        "VALUES (%(ename)s, %(sid)s, %(rid)s, %(jid)s, %(mid)s)", 
+                        {'ename': event_name, 'sid': int(sport_id),
+                        'rid': int(referee_id), 'jid': int(judge_id), 'mid': int(medalGiver_id)})
+        print([event_name, sport_id, referee_id, judge_id, medalGiver_id])
+        conn.commit()
     except psycopg2.Error as sqle:
-        print("psycopg2.Error : " + sqle.pgerror)       # sqle.pgerror should be deleted
+        print("psycopg2.Error : ", sqle.pgerror)       # sqle.pgerror should be deleted
     finally:
         if conn != None:
             cursor.close()
             conn.close()
+            print('SQL connection closed.')
 
     return True
 
@@ -167,6 +225,22 @@ def addEvent(event_name, sport, referee, judge, medal_giver):
 Update an existing event
 '''
 def updateEvent(event_id, event_name, sport, referee, judge, medal_giver):
-
+    # It needs to support updating event associated with the user as the minimum.
+    # input checking process
+    
+    try:
+        conn = openConnection()
+        cursor = conn.cursor()
+        get_stmt = ("SELECT count(*) from event")
+        cursor.execute(get_stmt)
+        res = cursor.fetchone()
+        print(int(count[0]) for count in res)
+        
+    except psycopg2.Error as sqle:
+        print("psycopg2.Error : " + sqle.pgerror)       # sqle.pgerror should be deleted
+    finally:
+        if conn != None:
+            cursor.close()
+            conn.close()
 
     return True
