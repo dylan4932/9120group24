@@ -39,8 +39,8 @@ def checkUserCredentials(username, password):
     # User '-' should not be allowed to login.
     # Check user input validation process
     # still need to validate the login process (check)
-    # if not username.isalnum():
-    #     return
+    if not username.isalnum():
+        return
     try:
         conn = openConnection()
 
@@ -56,9 +56,9 @@ def checkUserCredentials(username, password):
             conn.close()
             print('SQL connection closed.')
         # did not match
-        if len(userInfo) == 0:
-            print('Invalidate user and password')
-            return
+        # if len(userInfo) == 0:
+        #     print('Invalidate user and password')
+        #     return
     
     # userInfo = ['3', 'ChrisP', 'Christopher', 'Putin', '888']
     
