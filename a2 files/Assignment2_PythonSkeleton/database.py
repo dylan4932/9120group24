@@ -80,7 +80,7 @@ def findEventsByOfficial(official_id):
                         "JOIN official j ON (e.judge = j.officialid)\r\n" +
                         "JOIN official m ON (e.medalgiver = m.officialid)\r\n" +
                         "WHERE e.referee=%(official)s or e.judge=%(official)s or e.medalgiver=%(official)s\r\n"+
-                        "ORDER BY s.sportname;", {'official': official_id})
+                        "ORDER BY s.sportname;", {'official': int(official_id)})
         event_db = cursor.fetchall()
         
     except psycopg2.Error as sqle:
@@ -226,21 +226,76 @@ Update an existing event
 '''
 def updateEvent(event_id, event_name, sport, referee, judge, medal_giver):
     # It needs to support updating event associated with the user as the minimum.
-    # input checking process
-    
+    conn = None
     try:
         conn = openConnection()
         cursor = conn.cursor()
-        get_stmt = ("SELECT count(*) from event")
-        cursor.execute(get_stmt)
-        res = cursor.fetchone()
-        print(int(count[0]) for count in res)
+        # # get event_id
+        # event_stmt = ("SELECT count(*) from event;")
+        # cursor.execute(event_stmt)
+        # event_id = cursor.fetchone()[0]+1
+
+        # get sport_id
+        sname_list = []
+        sport_stmt = ("SELECT * from sport;")
+        cursor.execute(sport_stmt)
+        sport_list = cursor.fetchall()
+        for row in sport_list:
+            sname_list.append(row[1])
         
+        # check whether the input sport are in the list
+        if sport not in sname_list:
+            cursor.close()
+            conn.close()
+            print('SQL connection closed.')
+            print('Sport name not in the database')
+            return False
+        
+        for row in sport_list:
+            if row[1] == sport:
+                sport_id = row[0]
+
+        # get official_id for referee/ judge/ medal giver
+        username_list = []                             
+        official_stmt = ("SELECT officialid, username from official;")
+        cursor.execute(official_stmt)
+        official_list = cursor.fetchall()
+        for row in official_list:
+            username_list.append(row[1])
+        
+        # check whether the referee/ judge/ medal_giver in the official list
+        if referee not in username_list and judge not in username_list and medal_giver not in username_list:
+            cursor.close()
+            conn.close()
+            print('Username not in the database')
+            return False
+
+        # should check the referee/ judge/medal_giver are the same
+        for official in official_list:
+            if official[1] == referee:
+                referee_id = official[0]
+
+        for official in official_list:
+            if official[1] == judge:
+                judge_id = official[0]
+
+        for official in official_list:
+            if official[1] == medal_giver:
+                medalGiver_id = official[0]
+
+        cursor.execute("UPDATE event SET eventname = %(ename)s, sportid=%(sid)s, %(rid)s,\r\n"+
+                        " judge=%(jid)s, medalgiver=%(mid)s \r\n"+
+                        "WHERE eventid=%(eid)s;", 
+                        {'ename': event_name, 'sid': int(sport_id), 'rid': int(referee_id),
+                         'jid': int(judge_id), 'mid': int(medalGiver_id), 'eid':int(event_id)})
+        print([event_name, sport_id, referee_id, judge_id, medalGiver_id])
+        conn.commit()
     except psycopg2.Error as sqle:
-        print("psycopg2.Error : " + sqle.pgerror)       # sqle.pgerror should be deleted
+        print("psycopg2.Error : ", sqle.pgerror)       # sqle.pgerror should be deleted
     finally:
         if conn != None:
             cursor.close()
             conn.close()
+            print('SQL connection closed.')
 
     return True
