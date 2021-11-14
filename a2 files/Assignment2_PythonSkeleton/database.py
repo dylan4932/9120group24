@@ -77,21 +77,23 @@ List all the associated events in the database for a given official
 '''
 def findEventsByOfficial(official_id):
     event_db = []
+    result = []
     event_list = []
     try:
         conn = openConnection()
         cursor = conn.cursor()
-        cursor.execute("SELECT e.eventid, e.eventname, s.sportname, r.username, j.username, m.username\r\n" +
-                        "FROM event e NATURAL JOIN sport s\r\n" +
-                        "JOIN official r ON (e.referee = r.officialid)\r\n" +
-                        "JOIN official j ON (e.judge = j.officialid)\r\n" +
-                        "JOIN official m ON (e.medalgiver = m.officialid)\r\n" +
-                        "WHERE e.referee=%(official)s or e.judge=%(official)s or e.medalgiver=%(official)s\r\n"+
-                        "ORDER BY s.sportname;", {'official': int(official_id)})
-        event_db = cursor.fetchall()
+        # execute the stored procedure list_event in BOSSschema.sql
+        cursor.execute('SELECT list_event(%(official)s)', {'official': official_id})
+        result = cursor.fetchall()
         
-    except Exception as e:      # need to check the connection while excute
-        print('Execution Error')
+        # format the output
+        for row in result:
+            content = row[0].replace("(", "")
+            content = content.replace(")", "")
+            content = content.replace("\"", "")
+            event_db.append(content.split(','))
+    except psycopg2.Error as sqle:
+        print("psycopg2.Error : " + sqle.pgerror)
     finally:
         event_list = [{
             'event_id': str(row[0]),
@@ -120,18 +122,16 @@ def findEventsByCriteria(searchString):
     try:
         conn = openConnection()
         cursor = conn.cursor()
-        cursor.execute("SELECT e.eventid, e.eventname, s.sportname, r.username, j.username, m.username\r\n" +
-                        "FROM event e NATURAL JOIN sport s\r\n" +
-                        "JOIN official r ON (e.referee = r.officialid)\r\n" +
-                        "JOIN official j ON (e.judge = j.officialid)\r\n" +
-                        "JOIN official m ON (e.medalgiver = m.officialid)\r\n" +
-                        "WHERE LOWER(e.eventname) LIKE LOWER(%(search)s)\r\n"+
-                        "OR LOWER(s.sportname) LIKE LOWER(%(search)s)\r\n"+
-                        "OR LOWER(r.username) LIKE LOWER(%(search)s)\r\n"+
-                        "OR LOWER(j.username) LIKE LOWER(%(search)s)\r\n"+
-                        "OR LOWER(m.username) LIKE LOWER(%(search)s)\r\n"+
-                        "ORDER BY s.sportname;",{'search':'%'+searchString+'%'})
-        events = cursor.fetchall()
+        # execute the stored procedure search_event in BOSSschema.sql
+        cursor.execute('SELECT search_event(%(keyword)s)', {'keyword': '%'+searchString+'%'})
+        result = cursor.fetchall()
+        
+        # format output
+        for row in result:
+            content = row[0].replace("(", "")
+            content = content.replace(")", "")
+            content = content.replace("\"", "")
+            events.append(content.split(','))
         event_list = [{
             'event_id': str(row[0]),
             'event_name': row[1],
@@ -326,8 +326,11 @@ def updateEvent(event_id, event_name, sport, referee, judge, medal_giver):
                         {'ename': event_name, 'sid': int(sport_id), 'rid': int(referee_id),
                          'jid': int(judge_id), 'mid': int(medalGiver_id), 'eid':int(event_id)})
         conn.commit()
-    except Exception as e:              # need to check the connection while excute
-        print('Execution Error')        # if there is an error occurs during the execution 
+        # cursor.execute('BEGIN;')
+        # cursor.callproc('update_event', [int(event_id), event_name, int(sport_id), int(referee_id), int(judge_id), int(medalGiver_id)])
+        
+    except psycopg2.Error as sqle:
+        print("psycopg2.Error : " + sqle.pgerror)
         if conn != None:                # close the connection then return False
             cursor.close()
             conn.close()

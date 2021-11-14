@@ -66,4 +66,61 @@ INSERT INTO EVENT (EVENTNAME,SPORTID,REFEREE,JUDGE,MEDALGIVER) VALUES ('Men''s T
 INSERT INTO EVENT (EVENTNAME,SPORTID,REFEREE,JUDGE,MEDALGIVER) VALUES ('Men''s Tournament Semifinal',4,1,2,6);	-- 4
 INSERT INTO EVENT (EVENTNAME,SPORTID,REFEREE,JUDGE,MEDALGIVER) VALUES ('Women''s Lightweight Final',5,4,6,1);	-- 5
 
+CREATE OR REPLACE FUNCTION update_event(eid INT, ename VARCHAR, rid INT, jid INT, mid INT) RETURNS 
+INTEGER 
+AS $$
+BEGIN
+	UPDATE EVENT E
+	SET E.EVENTNAME=ename, E.REFEREE=rid, E.JUDGE=jid, E.MEDALGIVER=mid
+	WHERE E.EVENTID=eid;
+	RETURN 0;
+	END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION list_event(oid int) 
+RETURNS TABLE (
+	eid int,
+	ename varchar,
+	sport varchar,
+	referee varchar,
+	judge varchar,
+	medal_giver varchar)
+AS $$
+BEGIN
+	RETURN QUERY 
+		SELECT e.eventid, e.eventname, s.sportname, r.username, j.username, m.username 
+		FROM event e NATURAL JOIN sport s
+		JOIN official r ON (e.referee = r.officialid)
+		JOIN official j ON (e.judge = j.officialid)
+		JOIN official m ON (e.medalgiver = m.officialid)
+		WHERE e.referee=oid or e.judge=oid or e.medalgiver=oid
+		ORDER BY s.sportname;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION search_event(keyword varchar) 
+RETURNS TABLE (
+	eid int,
+	ename varchar,
+	sport varchar,
+	referee varchar,
+	judge varchar,
+	medal_giver varchar)
+AS $$
+BEGIN
+	RETURN QUERY 
+		SELECT e.eventid, e.eventname, s.sportname, r.username, j.username, m.username 
+		FROM event e NATURAL JOIN sport s
+		JOIN official r ON (e.referee = r.officialid)
+		JOIN official j ON (e.judge = j.officialid)
+		JOIN official m ON (e.medalgiver = m.officialid)
+		WHERE LOWER(e.eventname) LIKE LOWER(keyword)
+		OR LOWER(s.sportname) LIKE LOWER(keyword)
+		OR LOWER(r.username) LIKE LOWER(keyword)
+		OR LOWER(j.username) LIKE LOWER(keyword)
+		OR LOWER(m.username) LIKE LOWER(keyword)
+		ORDER BY s.sportname;
+END;
+$$ LANGUAGE plpgsql;
+	
 COMMIT;
