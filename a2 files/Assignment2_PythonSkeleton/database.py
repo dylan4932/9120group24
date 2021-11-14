@@ -224,10 +224,17 @@ def addEvent(event_name, sport, referee, judge, medal_giver):
             if official[1] == medal_giver:
                 medalGiver_id = official[0]
 
-        cursor.execute("INSERT INTO event(eventname, sportid, referee, judge, medalgiver)\r\n"+
-                        "VALUES (%(ename)s, %(sid)s, %(rid)s, %(jid)s, %(mid)s)", 
-                        {'ename': event_name, 'sid': int(sport_id),
-                        'rid': int(referee_id), 'jid': int(judge_id), 'mid': int(medalGiver_id)})
+        # call stored procedure add_event and get return value
+        # the update_event function returns 0 if insert success
+        cursor.callproc('add_event', [event_name, int(sport_id), int(referee_id), int(judge_id), int(medalGiver_id)])
+        result=cursor.fetchone()
+        if result[0] != 0:
+            print('Error with update')
+            cursor.close()
+            conn.close()
+            return False
+        
+        # commit the change to database
         conn.commit()
     except Exception as e:              # need to check the connection while excute
         print('Execution Error')        # if there is an error occurs during the execution 
@@ -320,17 +327,20 @@ def updateEvent(event_id, event_name, sport, referee, judge, medal_giver):
             if official[1] == medal_giver:
                 medalGiver_id = official[0]
 
-        cursor.execute("UPDATE event SET eventname = %(ename)s, sportid=%(sid)s,\r\n"+
-                        " referee=%(rid)s, judge=%(jid)s, medalgiver=%(mid)s \r\n"+
-                        "WHERE eventid=%(eid)s;", 
-                        {'ename': event_name, 'sid': int(sport_id), 'rid': int(referee_id),
-                         'jid': int(judge_id), 'mid': int(medalGiver_id), 'eid':int(event_id)})
-        conn.commit()
-        # cursor.execute('BEGIN;')
-        # cursor.callproc('update_event', [int(event_id), event_name, int(sport_id), int(referee_id), int(judge_id), int(medalGiver_id)])
+        # call stored procedure and get return value
+        # the update_event function returns 0 if update success
+        cursor.callproc('update_event', [int(event_id), event_name, int(sport_id), int(referee_id), int(judge_id), int(medalGiver_id)])
+        result=cursor.fetchone()
+        if result[0] != 0:
+            print('Error with update')
+            cursor.close()
+            conn.close()
+            return False
         
-    except psycopg2.Error as sqle:
-        print("psycopg2.Error : " + sqle.pgerror)
+        # commit the change to database
+        conn.commit()
+    except Exception as e:              # need to do error checking while excute
+        print('Execution Error')        # if there is an error occurs during the execution 
         if conn != None:                # close the connection then return False
             cursor.close()
             conn.close()

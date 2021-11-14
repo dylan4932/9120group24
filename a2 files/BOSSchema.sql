@@ -66,16 +66,6 @@ INSERT INTO EVENT (EVENTNAME,SPORTID,REFEREE,JUDGE,MEDALGIVER) VALUES ('Men''s T
 INSERT INTO EVENT (EVENTNAME,SPORTID,REFEREE,JUDGE,MEDALGIVER) VALUES ('Men''s Tournament Semifinal',4,1,2,6);	-- 4
 INSERT INTO EVENT (EVENTNAME,SPORTID,REFEREE,JUDGE,MEDALGIVER) VALUES ('Women''s Lightweight Final',5,4,6,1);	-- 5
 
-CREATE OR REPLACE FUNCTION update_event(eid INT, ename VARCHAR, rid INT, jid INT, mid INT) RETURNS 
-INTEGER 
-AS $$
-BEGIN
-	UPDATE EVENT E
-	SET E.EVENTNAME=ename, E.REFEREE=rid, E.JUDGE=jid, E.MEDALGIVER=mid
-	WHERE E.EVENTID=eid;
-	RETURN 0;
-	END;
-$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION list_event(oid int) 
 RETURNS TABLE (
@@ -120,6 +110,27 @@ BEGIN
 		OR LOWER(j.username) LIKE LOWER(keyword)
 		OR LOWER(m.username) LIKE LOWER(keyword)
 		ORDER BY s.sportname;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION add_event(ename varchar, sid int, rid int, jid int, mid int) 
+RETURNS INTEGER 
+AS $$
+BEGIN
+	INSERT INTO event(eventname, sportid, referee, judge, medalgiver)
+	VALUES (ename, sid, rid, jid, mid);
+	RETURN 0;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION update_event(eid int, ename varchar, sid int, rid int, jid int, mid int) 
+RETURNS INTEGER 
+AS $$
+BEGIN
+	UPDATE event
+	SET eventname=ename, sportid=sid, referee=rid, judge=jid, medalgiver=mid
+	WHERE eventid=eid;
+	RETURN 0;
 END;
 $$ LANGUAGE plpgsql;
 	
