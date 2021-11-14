@@ -87,7 +87,7 @@ def findEventsByOfficial(official_id):
         print("psycopg2.Error : " + sqle.pgerror)       # sqle.pgerror should be deleted
     finally:
         event_list = [{
-            'event_id': row[0],
+            'event_id': str(row[0]),
             'event_name': row[1],
             'sport': row[2],
             'referee': row[3],
@@ -98,6 +98,7 @@ def findEventsByOfficial(official_id):
             cursor.close()
             conn.close()
             print('SQL connection closed.')
+       
     return event_list       
             
 '''
@@ -125,7 +126,7 @@ def findEventsByCriteria(searchString):
                         "ORDER BY s.sportname;")
         events = cursor.fetchall()
         event_list = [{
-            'event_id': row[0],
+            'event_id': str(row[0]),
             'event_name': row[1],
             'sport': row[2],
             'referee': row[3],
@@ -283,8 +284,8 @@ def updateEvent(event_id, event_name, sport, referee, judge, medal_giver):
             if official[1] == medal_giver:
                 medalGiver_id = official[0]
 
-        cursor.execute("UPDATE event SET eventname = %(ename)s, sportid=%(sid)s, %(rid)s,\r\n"+
-                        " judge=%(jid)s, medalgiver=%(mid)s \r\n"+
+        cursor.execute("UPDATE event SET eventname = %(ename)s, sportid=%(sid)s,\r\n"+
+                        " referee=%(rid)s, judge=%(jid)s, medalgiver=%(mid)s \r\n"+
                         "WHERE eventid=%(eid)s;", 
                         {'ename': event_name, 'sid': int(sport_id), 'rid': int(referee_id),
                          'jid': int(judge_id), 'mid': int(medalGiver_id), 'eid':int(event_id)})
