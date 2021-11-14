@@ -10,8 +10,8 @@ Connect to the database using the connection string
 '''
 def openConnection():
     # connection parameters - ENTER YOUR LOGIN AND PASSWORD HERE
-    userid = "y21s2c9120_yuji0713"
-    passwd = "1997"
+    userid = "y21s2c9120_unikey"
+    passwd = "password"
     myHost = "soit-db-pro-2.ucc.usyd.edu.au"
 
     # Create a connection to the database
@@ -67,8 +67,6 @@ def checkUserCredentials(username, password):
             conn.close()
             print('SQL connection closed.')
     
-    # userInfo = ['3', 'ChrisP', 'Christopher', 'Putin', '888']
-    
     return userInfo
 
 
@@ -77,7 +75,6 @@ List all the associated events in the database for a given official
 '''
 def findEventsByOfficial(official_id):
     event_db = []
-    result = []
     event_list = []
     try:
         conn = openConnection()
@@ -90,10 +87,7 @@ def findEventsByOfficial(official_id):
                         "WHERE e.referee=%(official)s or e.judge=%(official)s or e.medalgiver=%(official)s\r\n"+
                         "ORDER BY s.sportname;", {'official': int(official_id)})
         event_db = cursor.fetchall()
-        
-    except Exception as e:      # need to check the connection while excute
-        print('Execution Error')
-    finally:
+        # format output
         event_list = [{
             'event_id': str(row[0]),
             'event_name': row[1],
@@ -102,6 +96,10 @@ def findEventsByOfficial(official_id):
             'judge': row[4],
             'medal_giver': row[5]
         } for row in event_db]
+
+    except Exception as e:      # need to check the connection while excute
+        print('Execution Error')
+    finally:   
         if conn != None:
             cursor.close()
             conn.close()
@@ -116,8 +114,6 @@ See assignment description for search specification
 def findEventsByCriteria(searchString):
     events = []
     event_list = []
-    # searching with a blank/empty keyword field will show all of the logged in user’s associated events.
-    # multiple search
     try:
         conn = openConnection()
         cursor = conn.cursor()
@@ -325,7 +321,7 @@ def updateEvent(event_id, event_name, sport, referee, judge, medal_giver):
         # call stored procedure and get return value
         # the update_event function returns 0 if update success
         cursor.callproc('update_event', [int(event_id), event_name, int(sport_id), int(referee_id), int(judge_id), int(medalGiver_id)])
-        result=cursor.fetchone()
+        result = cursor.fetchone()
         if result[0] != 0:
             print('Error with update')
             cursor.close()
