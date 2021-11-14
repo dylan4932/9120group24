@@ -82,18 +82,17 @@ def findEventsByOfficial(official_id):
     try:
         conn = openConnection()
         cursor = conn.cursor()
-        # execute the stored procedure list_event in BOSSschema.sql
-        cursor.execute('SELECT list_event(%(official)s)', {'official': official_id})
-        result = cursor.fetchall()
+        cursor.execute("SELECT e.eventid, e.eventname, s.sportname, r.username, j.username, m.username\r\n" +
+                        "FROM event e NATURAL JOIN sport s\r\n" +
+                        "JOIN official r ON (e.referee = r.officialid)\r\n" +
+                        "JOIN official j ON (e.judge = j.officialid)\r\n" +
+                        "JOIN official m ON (e.medalgiver = m.officialid)\r\n" +
+                        "WHERE e.referee=%(official)s or e.judge=%(official)s or e.medalgiver=%(official)s\r\n"+
+                        "ORDER BY s.sportname;", {'official': int(official_id)})
+        event_db = cursor.fetchall()
         
-        # format the output
-        for row in result:
-            content = row[0].replace("(", "")
-            content = content.replace(")", "")
-            content = content.replace("\"", "")
-            event_db.append(content.split(','))
-    except psycopg2.Error as sqle:
-        print("psycopg2.Error : " + sqle.pgerror)
+    except Exception as e:      # need to check the connection while excute
+        print('Execution Error')
     finally:
         event_list = [{
             'event_id': str(row[0]),
@@ -224,15 +223,11 @@ def addEvent(event_name, sport, referee, judge, medal_giver):
             if official[1] == medal_giver:
                 medalGiver_id = official[0]
 
-        # call stored procedure add_event and get return value
-        # the update_event function returns 0 if insert success
-        cursor.callproc('add_event', [event_name, int(sport_id), int(referee_id), int(judge_id), int(medalGiver_id)])
-        result=cursor.fetchone()
-        if result[0] != 0:
-            print('Error with update')
-            cursor.close()
-            conn.close()
-            return False
+        # execute the insert query
+        cursor.execute("INSERT INTO event(eventname, sportid, referee, judge, medalgiver)\r\n"+
+                        "VALUES (%(ename)s, %(sid)s, %(rid)s, %(jid)s, %(mid)s)", 
+                        {'ename': event_name, 'sid': int(sport_id),
+                        'rid': int(referee_id), 'jid': int(judge_id), 'mid': int(medalGiver_id)})
         
         # commit the change to database
         conn.commit()
